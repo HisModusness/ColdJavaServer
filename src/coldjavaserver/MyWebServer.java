@@ -115,8 +115,8 @@ public class MyWebServer extends GenericServer {
                         writeToNet.write(className.getBytes());
                         writeToNet.close();
                     }
-                    
-                    if (version.startsWith("HTTP/")) {
+                    else {
+                        if (version.startsWith("HTTP/")) {
                         // send a MIME header
                         writeToNet.print("HTTP/1.0 501 Not Implemented\r\n");
                         writeToNet.print("Date: " + new Date() + "\r\n");
@@ -127,9 +127,9 @@ public class MyWebServer extends GenericServer {
                     writeToNet.println("<HTML><HEAD><TITLE>Not Implemented</TITLE></HEAD>");
                     writeToNet.println("<BODY><H1>HTTP Error 501: Not Implemented</H1></BODY></HTML>");
                     writeToNet.close();
-                    
+                    }
                 }
-                if (httpMethod.equals("GET")) {
+                else if (httpMethod.equals("GET")) {
                     fileString = tokenizer.nextToken();
                     if (fileString.endsWith("/")) {
                         fileString += indexfile;
