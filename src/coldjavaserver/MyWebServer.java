@@ -235,6 +235,8 @@ public class MyWebServer extends GenericServer {
             switch(protocol) {
                 case "time":
                     return "coldjava/Time.class";
+                case "arith":
+                    return "coldjava/Arith.class";
             }
             
             return null;
