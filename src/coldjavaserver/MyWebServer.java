@@ -35,7 +35,7 @@ public class MyWebServer extends GenericServer {
      */
     public MyWebServer() {
 
-        this("/Users/lw322/Documents/Dropbox/Sixth Semester/CS 460/Projects/ColdJavaServer/build/classes/", 23657);
+        this("/Users/lw322/Documents/Dropbox/Sixth Semester/CS 460/Projects/ColdJavaServer/build/classes", 23657);
     }
 
     /**
@@ -129,6 +129,17 @@ public class MyWebServer extends GenericServer {
                     writeToNet.close();
                     }
                 }
+                else if (httpMethod.equals("UPLOAD")) {
+                    System.out.println(inputLine);
+                    while ((inputLine = readFromNet.readLine()) != null) {
+                        if (inputLine.equals((char)255)) {
+                            break;
+                        }
+                        System.out.println(inputLine);
+                    }
+                    System.out.print("Responding OK");
+                    writeToNet.print("HTTP/1.0 200 OK\r\n");
+                }
                 else if (httpMethod.equals("GET")) {
                     fileString = tokenizer.nextToken();
                     if (fileString.endsWith("/")) {
@@ -185,6 +196,7 @@ public class MyWebServer extends GenericServer {
                         System.err.println("File: " + fileToServe + " not found\n");
                     }
                 } else {
+                    System.out.println(inputLine);
                     // Method doesn't equal "GET" or "CLASS"
                     if (version.startsWith("HTTP/")) {
                         // send a MIME header
