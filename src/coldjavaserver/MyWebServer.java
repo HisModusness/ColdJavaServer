@@ -4,6 +4,9 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 
+import javax.tools.Diagnostic;
+import javax.tools.JavaCompiler.CompilationTask;
+
 /**
  * Class [MyWebServer] <p> This is a simple web server, which only implements the GET-method.
  *
@@ -11,9 +14,12 @@ import java.util.*;
  * @version Feb. 2000
  */
 public class MyWebServer extends GenericServer {
-
+    public static final String configPath = "src/coldjavaserver/config.properties";
     static String documentRoot;
     static String indexfile = "index.html";
+    Properties prop = new Properties();
+    
+    
 
     /**
      * The constructors
@@ -21,7 +27,7 @@ public class MyWebServer extends GenericServer {
     public MyWebServer(String documentRoot, int port) {
 
         super(port);
-
+        
         this.documentRoot = documentRoot;
     }
 
@@ -34,8 +40,14 @@ public class MyWebServer extends GenericServer {
      }
      */
     public MyWebServer() {
-
-        this("/Users/lw322/Documents/Dropbox/Sixth Semester/CS 460/Projects/ColdJavaServer/build/classes", 23657);
+	super(23657);
+	try {
+     		prop.load(new FileInputStream(configPath));
+     		documentRoot =  prop.getProperty("root");
+            } catch (IOException ex) {
+        	ex.printStackTrace();
+        	documentRoot = "";
+            }
     }
 
     /**
@@ -131,14 +143,88 @@ public class MyWebServer extends GenericServer {
                 }
                 else if (httpMethod.equals("UPLOAD")) {
                     System.out.println(inputLine);
-                    while ((inputLine = readFromNet.readLine()) != null) {
-                        if (inputLine.equals((char)255)) {
-                            break;
+                    
+                    
+                    StringTokenizer t = new StringTokenizer(inputLine);
+                    t.nextToken();
+                    String name = t.nextToken();
+                    int length = -1;
+                    int count = 0;
+                    String protocol = null;
+                    int c;
+                    boolean inContent = false;
+                    boolean newLine = false;
+                    boolean doOnce = true;
+                    ByteArrayOutputStream content = new ByteArrayOutputStream();
+                    ByteArrayOutputStream header = new ByteArrayOutputStream();
+                    
+                    while ((c = readFromNet.read()) != -1) {
+                        if (inContent) {
+                            if(doOnce)
+                            {
+                        	System.out.println(header.toString());
+                        	StringTokenizer ht = new StringTokenizer(header.toString());
+                        	while(ht.hasMoreTokens())
+                        	{
+                        	   String s = ht.nextToken();
+                        	   if(s.equals("Content-Length:"))
+                        	   {
+                        	       length = Integer.parseInt(ht.nextToken());
+                        	   }else if(s.equals("protocol:"))
+                        	   {
+                        	       protocol = ht.nextToken();
+                        	   }
+                        	}
+                        	doOnce = false;
+                            }
+                            if(++count >= length)
+                        	break;
+                            content.write(c);
+                        } else {
+                            header.write(c);
+                            if (c == 10 && newLine) {
+                                inContent = true;
+                            } else if (c == 13) {
+                                continue;
+                            } else {
+                                newLine = false;
+                            }
+                            if (c == 10) {
+                                newLine = true;
+                            }
                         }
-                        System.out.println(inputLine);
                     }
-                    System.out.print("Responding OK");
-                    writeToNet.print("HTTP/1.0 200 OK\r\n");
+
+                    PrintWriter out = new PrintWriter(documentRoot + "/"+ name.replace('.', '/') + ".java");
+                    out.write(content.toString());
+                    out.close();
+                    
+                    CompilationTask task = Compiler.makeCompilerTask(documentRoot + "/"+ name.replace('.', '/') + ".java");
+
+                    System.out.println("Compiling ...");
+
+                    if (!task.call()) {
+                        System.out.println("Compilation failed");
+                        writeToNet.print("HTTP/1.0 500 Internal Server Error\r\n");
+                        writeToNet.println();
+                        writeToNet.close();
+                    }else {
+                	 try {
+                  		prop.load(new FileInputStream(configPath));
+                  		prop.setProperty(protocol, name.replace('.', '/') + ".class");
+                  		prop.store(new FileOutputStream(configPath), null);
+                         } catch (IOException ex) {
+                     		ex.printStackTrace();
+                         }
+                	
+                	System.out.println("Responding OK");
+                        writeToNet.print("HTTP/1.0 200 OK\r\n");
+                        writeToNet.println();
+                        writeToNet.close();
+                    }
+
+                    
+                    
                 }
                 else if (httpMethod.equals("GET")) {
                     fileString = tokenizer.nextToken();
@@ -244,14 +330,15 @@ public class MyWebServer extends GenericServer {
         }
         
         public String getFullyQualifiedClassName(String protocol) {
-            switch(protocol) {
-                case "time":
-                    return "coldjava/Time.class";
-                case "arith":
-                    return "coldjava/Arith.class";
-            }
             
-            return null;
+            try {
+     		prop.load(new FileInputStream(configPath));
+     		return prop.getProperty(protocol);
+            } catch (IOException ex) {
+        	ex.printStackTrace();
+        	return null;
+            }
+        
         }
     }
 }
