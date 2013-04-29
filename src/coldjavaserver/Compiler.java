@@ -24,7 +24,7 @@ public class Compiler {
   Properties prop = new Properties();
 	 try {
   		prop.load(new FileInputStream(MyWebServer.configPath));
-  		System.setProperty("java.home", prop.getProperty("jdk"));
+  		//System.setProperty("java.home", prop.getProperty("jdk"));
          } catch (IOException ex) {
      		ex.printStackTrace();
          }
